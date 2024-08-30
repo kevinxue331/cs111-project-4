@@ -43,30 +43,6 @@ typedef int32_t i32;
 /* http://www.nongnu.org/ext2-doc/ext2.html */
 /* http://www.science.smith.edu/~nhowe/262/oldlabs/ext2.html */
 
-/* START OF SELF-DEFINED MACROS */
-
-// SUPER BLOCK
-#define UNLIMITED_MNT_COUNT -1
-
-#define CHECK_INTERVAL 1
-
-#define EXT2_VALID_FS 1
-#define EXT2_ERROR_FS 2
-
-#define EXT2_ERRORS_CONTINUE 1
-#define EXT2_ERRORS_RO 2
-#define EXT2_ERRORS_PANIC 3
-
-#define EXT2_OS_LINUX 0
-
-#define EXT2_DEF_RESUID 0
-#define EXT2_DEF_RESGID 0
-
-// BLOCK GROUP DESCRIPTOR
-#define DIRS_COUNT 2
-
-/* END OF SELF-DEFINED MACROS */
-
 #define	EXT2_BAD_INO             1
 #define EXT2_ROOT_INO            2
 #define EXT2_GOOD_OLD_FIRST_INO 11
@@ -220,32 +196,36 @@ void write_superblock(int fd) {
 
 	struct ext2_superblock superblock = {0};
 
+	// TODO It's all yours
+	// TODO finish the superblock number setting
 	superblock.s_inodes_count = NUM_INODES;
 	superblock.s_blocks_count = NUM_BLOCKS;
 	superblock.s_r_blocks_count = 0;
 	superblock.s_free_blocks_count = NUM_FREE_BLOCKS;
 	superblock.s_free_inodes_count = NUM_FREE_INODES;
 	superblock.s_first_data_block = SUPERBLOCK_BLOCKNO; /* First Data Block */
-	superblock.s_log_block_size = 0;					/* 1024 */ // 0 because you want to bitshift 0 bits
-	superblock.s_log_frag_size = 0;						/* 1024 */ // 0 because you want to bitshift 0 bits
-	superblock.s_blocks_per_group = BLOCK_SIZE * 8;
-	superblock.s_frags_per_group = BLOCK_SIZE * 8;
+	superblock.s_log_block_size = 0;					/* 1024 */
+	superblock.s_log_frag_size = 0;						/* 1024 */
+	superblock.s_blocks_per_group = BLOCK_SIZE*8;
+	superblock.s_frags_per_group = BLOCK_SIZE*8;
 	superblock.s_inodes_per_group = NUM_INODES;
 	superblock.s_mtime = 0;				/* Mount time */
 	superblock.s_wtime = current_time;	/* Write time */
 	superblock.s_mnt_count         = 0; /* Number of times mounted so far */
-	superblock.s_max_mnt_count     = UNLIMITED_MNT_COUNT; /* Make this unlimited */
+	superblock.s_max_mnt_count     = -1; /* Make this unlimited */
 	superblock.s_magic = EXT2_SUPER_MAGIC; /* ext2 Signature */
-	superblock.s_state             = EXT2_VALID_FS; /* File system is clean */
-	superblock.s_errors            = EXT2_ERRORS_CONTINUE; /* Ignore the error (continue on) */
+	superblock.s_state             = 1; /* File system is clean */
+	superblock.s_errors            = 1; /* Ignore the error (continue on) */
 	superblock.s_minor_rev_level   = 0; /* Leave this as 0 */
 	superblock.s_lastcheck = current_time; /* Last check time */
-	superblock.s_checkinterval     = CHECK_INTERVAL; /* Force checks by making them every 1 second */
-	superblock.s_creator_os        = EXT2_OS_LINUX; /* Linux */
+	superblock.s_checkinterval     = 1; /* Force checks by making them every 1 second */
+	superblock.s_creator_os        = 0; /* Linux */
 	superblock.s_rev_level         = 0; /* Leave this as 0 */
-	superblock.s_def_resuid        = EXT2_DEF_RESUID; /* root */ // 0 is default
-	superblock.s_def_resgid        = EXT2_DEF_RESGID; /* root */ // 0 is default
+	superblock.s_def_resuid        = 0; /* root */
+	superblock.s_def_resgid        = 0; /* root */
 
+	/* You can leave everything below this line the same, delete this
+	   comment when you're done the lab */
 	superblock.s_uuid[0] = 0x5A;
 	superblock.s_uuid[1] = 0x1E;
 	superblock.s_uuid[2] = 0xAB;
@@ -279,12 +259,14 @@ void write_block_group_descriptor_table(int fd) {
 
 	struct ext2_block_group_descriptor block_group_descriptor = {0};
 
+	// TODO It's all yours
+	// TODO finish the block group descriptor number setting
 	block_group_descriptor.bg_block_bitmap = BLOCK_BITMAP_BLOCKNO;
 	block_group_descriptor.bg_inode_bitmap = INODE_BITMAP_BLOCKNO;
 	block_group_descriptor.bg_inode_table = INODE_TABLE_BLOCKNO;
 	block_group_descriptor.bg_free_blocks_count = NUM_FREE_BLOCKS;
 	block_group_descriptor.bg_free_inodes_count = NUM_FREE_INODES;
-	block_group_descriptor.bg_used_dirs_count = DIRS_COUNT;
+	block_group_descriptor.bg_used_dirs_count = 2;
 
 	ssize_t size = sizeof(block_group_descriptor);
 	if (write(fd, &block_group_descriptor, size) != size) {
@@ -300,23 +282,15 @@ void write_block_bitmap(int fd)
 		errno_exit("lseek");
 	}
 
-	u8 map_value[BLOCK_SIZE] = {0};
-	
-	// 1 bit = 1 block, thus 8 blocks per index
-	// First 23 blocks used to setup file system
-	// b7 b6 b5 b4 b3 b2 b1 b0 --> 8 7 6 5 4 3 2 1
-	// 1000 free blocks total in addition to starting 23 --> 1023 / 8 = 127r1
-	// Free blocks: 24-1023
-	map_value[0] = 0xFF; // 11111111 | 8
-	map_value[1] = 0xFF; // 11111111 | 8
-	map_value[2] = 0x7F; // 01111111 | 7
-	map_value[127] = 0x80; // 10000000, handle the remainder
-
-	// Bitmap padding
-	for (int i = 128; i < BLOCK_SIZE; i++) {
+	// TODO It's all yours
+	u8 map_value[BLOCK_SIZE]={0};
+	map_value[0] = 0xFF; 
+	map_value[1] = 0xFF; 
+	map_value[2] = 0x7F;
+	map_value[127] = 128;
+	for(int i=128; i<BLOCK_SIZE; i++){
 		map_value[i] = 0xFF;
 	}
-
 	if (write(fd, map_value, BLOCK_SIZE) != BLOCK_SIZE)
 	{
 		errno_exit("write");
@@ -331,18 +305,10 @@ void write_inode_bitmap(int fd)
 		errno_exit("lseek");
 	}
 
-	u8 map_value[BLOCK_SIZE] = {0};
-
-	// First 13 inodes used to setup file system
-	// Free inodes: 14-128
-	map_value[0] = 0xFF; // 11111111 | 8
-	map_value[1] = 0x1F; // 00011111 | 5
-
-	// Bitmap padding
-	for (int i = NUM_INODES / 8; i < BLOCK_SIZE; i++) {
-		map_value[i] = 0xFF;
-	}
-
+	// TODO It's all yours
+	u8 map_value[BLOCK_SIZE]={0};
+	map_value[0] = 0xFF;
+	map_value[1] = 0x1F; 	
 	if (write(fd, map_value, BLOCK_SIZE) != BLOCK_SIZE)
 	{
 		errno_exit("write");
