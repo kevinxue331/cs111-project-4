@@ -309,6 +309,10 @@ void write_inode_bitmap(int fd)
 	u8 map_value[BLOCK_SIZE]={0};
 	map_value[0] = 0xFF;
 	map_value[1] = 0x1F; 	
+	for (int i = NUM_INODES / 8; i < BLOCK_SIZE; i++) {
+		map_value[i] = 0xFF;
+	}
+
 	if (write(fd, map_value, BLOCK_SIZE) != BLOCK_SIZE)
 	{
 		errno_exit("write");
